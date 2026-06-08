@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans text-gray-800 bg-gray-50;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm;
+  }
+  .btn-danger {
+    @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm;
+  }
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  }
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200;
+  }
+}
+
+/* AG Grid custom styles */
+.ag-theme-alpine {
+  --ag-font-family: 'Sarabun', sans-serif;
+  --ag-font-size: 13px;
+  --ag-row-height: 38px;
+  --ag-header-height: 42px;
+  --ag-border-color: #e5e7eb;
+  --ag-odd-row-background-color: #fafafa;
+  --ag-selected-row-background-color: #eff6ff;
+  --ag-range-selection-border-color: #3b82f6;
+  --ag-header-background-color: #f1f5f9;
+  --ag-header-foreground-color: #374151;
+}
+
+.cell-readonly {
+  background-color: #f5f5f5 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+}
+
+.cell-editable {
+  cursor: cell !important;
+}
+
+.cell-modified {
+  background-color: #fef9c3 !important;
+}
