@@ -84,11 +84,11 @@ builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 var app = builder.Build();
 
-// Auto-migrate and seed on startup
+// Create DB schema from model on startup (no migrations needed)
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.Migrate();
+    dbContext.Database.EnsureCreated();
 
     // Seed admin user with properly hashed password if not exists
     if (!dbContext.Users.Any(u => u.Email == "admin@company.com"))
