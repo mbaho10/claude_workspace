@@ -1,8 +1,8 @@
 using System.Text;
 using BudgetPlanner.Api.Middleware;
 using BudgetPlanner.Application.Interfaces;
-using BudgetPlanner.Application.Services;
 using BudgetPlanner.Infrastructure.Data;
+using BudgetPlanner.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;

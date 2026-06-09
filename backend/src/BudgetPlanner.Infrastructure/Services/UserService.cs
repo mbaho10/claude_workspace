@@ -5,7 +5,7 @@ using BudgetPlanner.Domain.Enums;
 using BudgetPlanner.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace BudgetPlanner.Application.Services;
+namespace BudgetPlanner.Infrastructure.Services;
 
 public class UserService(AppDbContext db) : IUserService
 {

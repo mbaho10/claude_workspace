@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
-namespace BudgetPlanner.Application.Services;
+namespace BudgetPlanner.Infrastructure.Services;
 
 public class AuthService(AppDbContext db, IConfiguration config, IPermissionService permissionService) : IAuthService
 {

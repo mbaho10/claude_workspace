@@ -6,7 +6,7 @@ using BudgetPlanner.Infrastructure.Data;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 
-namespace BudgetPlanner.Application.Services;
+namespace BudgetPlanner.Infrastructure.Services;
 
 public class BudgetService(AppDbContext db, IPermissionService permissionService) : IBudgetService
 {
