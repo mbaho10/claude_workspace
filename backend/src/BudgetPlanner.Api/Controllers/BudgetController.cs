@@ -11,7 +11,7 @@ namespace BudgetPlanner.Api.Controllers;
 [Authorize]
 public class BudgetController(IBudgetService budgetService) : ControllerBase
 {
-    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private int CurrentUserId => int.Parse(User.FindFirstValue("sub")!);
     private bool IsAdmin => User.IsInRole("Admin");
 
     [HttpGet("templates")]

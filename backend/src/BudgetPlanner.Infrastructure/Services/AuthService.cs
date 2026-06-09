@@ -92,7 +92,7 @@ public class AuthService(AppDbContext db, IConfiguration config, IPermissionServ
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.Role, user.Role.ToString()),
+            new("role", user.Role.ToString()),
             new("fullName", user.FullName),
             new("deptId", user.DepartmentId?.ToString() ?? ""),
             new("editableDepts", string.Join(",", editableDeptIds))

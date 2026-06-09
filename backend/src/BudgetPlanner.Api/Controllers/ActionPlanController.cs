@@ -11,7 +11,7 @@ namespace BudgetPlanner.Api.Controllers;
 [Authorize]
 public class ActionPlanController(IActionPlanService actionPlanService) : ControllerBase
 {
-    private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private int CurrentUserId => int.Parse(User.FindFirstValue("sub")!);
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int? templateId)

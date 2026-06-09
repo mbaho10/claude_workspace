@@ -42,7 +42,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = int.Parse(User.FindFirstValue("sub")!);
         var profile = await authService.GetCurrentUserAsync(userId);
         return Ok(profile);
     }
@@ -52,8 +52,8 @@ public class AuthController(IAuthService authService) : ControllerBase
         Response.Cookies.Append("refreshToken", token, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
             Expires = DateTime.UtcNow.AddDays(7)
         });
     }
