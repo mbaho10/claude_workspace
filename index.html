@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>งบประมาณประจำปี — Waterfall</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:           #f9f9f7;
+    --surface-1:      #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --inc:            #2a78d6;   /* เพิ่มขึ้น */
+    --dec:            #e34948;   /* ลดลง */
+    --total:          #898781;   /* ยอดรวม (กลาง) */
+    --delta-good:     #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:           #0d0d0d;
+      --surface-1:      #1a1a19;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --inc:            #3987e5;
+      --dec:            #e66767;
+      --total:          #898781;
+      --delta-good:     #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:           #0d0d0d;
+    --surface-1:      #1a1a19;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --inc:            #3987e5;
+    --dec:            #e66767;
+    --total:          #898781;
+    --delta-good:     #0ca30c;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 20px 48px; }
+
+  header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  h1 { font-size: 20px; font-weight: 650; margin: 0 0 2px; }
+  .subtitle { color: var(--text-secondary); font-size: 14px; margin: 0; }
+
+  .theme-btn {
+    border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+    border-radius: 8px; padding: 6px 10px; font-size: 14px; cursor: pointer;
+  }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 20px 0 16px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface-1); }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-secondary);
+    padding: 7px 16px; font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button[aria-pressed="true"] { color: var(--text-primary); font-weight: 650; background: var(--page); }
+  .view-toggle { margin-left: auto; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .tile .label { font-size: 13px; color: var(--text-secondary); }
+  .tile .value { font-size: 24px; font-weight: 650; margin-top: 2px; }
+  .tile .unit { font-size: 13px; font-weight: 400; color: var(--text-muted); margin-left: 4px; }
+  .tile .delta { font-size: 12.5px; margin-top: 2px; color: var(--text-muted); }
+  .tile .delta.up { color: var(--delta-good); }
+  .tile .delta.down { color: var(--dec); }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 18px 10px; position: relative;
+  }
+  .card h2 { font-size: 15px; font-weight: 650; margin: 0; }
+  .card .desc { font-size: 13px; color: var(--text-secondary); margin: 2px 0 4px; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 4px; font-size: 13px; color: var(--text-secondary); }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .chip { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .chart-scroll { overflow-x: auto; }
+  svg { display: block; min-width: 720px; width: 100%; height: auto; }
+
+  .bar { rx: 3; }
+  .hit { fill: transparent; cursor: default; }
+  .connector { stroke: var(--baseline); stroke-dasharray: 3 3; stroke-width: 1; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .axisline { stroke: var(--baseline); stroke-width: 1; }
+  .tick, .cat { fill: var(--text-muted); font-size: 11.5px; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .tick { font-variant-numeric: tabular-nums; }
+  .barlabel { fill: var(--text-secondary); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 10; display: none;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    padding: 8px 10px; font-size: 12.5px; min-width: 150px;
+  }
+  .tooltip .t-name { font-weight: 650; margin-bottom: 2px; }
+  .tooltip .t-row { display: flex; justify-content: space-between; gap: 14px; color: var(--text-secondary); }
+  .tooltip .t-row b { color: var(--text-primary); font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 10px; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--grid); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th { color: var(--text-secondary); font-weight: 600; font-size: 13px; }
+  tr.total-row td { font-weight: 650; }
+  .pos { color: var(--inc); } .neg { color: var(--dec); }
+  #tableView { display: none; }
+
+  footer { color: var(--text-muted); font-size: 12.5px; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>งบประมาณประจำปีของบริษัท</h1>
+      <p class="subtitle">กราฟ Waterfall — จากรายได้รวมสู่กำไรสุทธิ (ตัวเลขจำลอง, หน่วย: ล้านบาท)</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="สลับโหมดสว่าง/มืด">🌙 โหมดมืด</button>
+  </header>
+
+  <div class="filters">
+    <span style="font-size:13px;color:var(--text-secondary)">ปีงบประมาณ</span>
+    <div class="seg" id="yearSeg" role="group" aria-label="เลือกปีงบประมาณ"></div>
+    <div class="seg view-toggle" role="group" aria-label="สลับมุมมอง">
+      <button id="btnChart" aria-pressed="true">กราฟ</button>
+      <button id="btnTable" aria-pressed="false">ตาราง</button>
+    </div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <h2 id="chartTitle"></h2>
+    <p class="desc">แต่ละแท่งแสดงผลของรายการต่อยอดสะสม — ชี้ที่แท่งเพื่อดูรายละเอียด</p>
+    <div class="legend">
+      <span class="key"><span class="chip" style="background:var(--inc)"></span>เพิ่มขึ้น</span>
+      <span class="key"><span class="chip" style="background:var(--dec)"></span>ลดลง</span>
+      <span class="key"><span class="chip" style="background:var(--total)"></span>ยอดรวม</span>
+    </div>
+    <div class="chart-scroll" id="chartView">
+      <svg id="chart" viewBox="0 0 960 430" role="img" aria-label="กราฟ waterfall งบประมาณ"></svg>
+    </div>
+    <div id="tableView"></div>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+
+  <footer>ข้อมูลจำลองเพื่อการสาธิต · แผนงบประมาณรายปี (พ.ศ.)</footer>
+</div>
+
+<script>
+// ---------- ข้อมูลจำลอง (ล้านบาท) ----------
+// kind: 'start' = ยอดตั้งต้น, 'delta' = รายการเปลี่ยนแปลง, 'end' = ยอดรวมสุทธิ (คำนวณ)
+const BUDGETS = {
+  "2567": [
+    { label: "รายได้รวม",        value: 95,   kind: "start" },
+    { label: "ต้นทุนขาย",        value: -40,  kind: "delta" },
+    { label: "เงินเดือนพนักงาน", value: -21,  kind: "delta" },
+    { label: "การตลาด",          value: -9,   kind: "delta" },
+    { label: "วิจัยและพัฒนา",    value: -6,   kind: "delta" },
+    { label: "ค่าใช้จ่ายบริหาร", value: -6,   kind: "delta" },
+    { label: "รายได้อื่นๆ",     value: 3,    kind: "delta" },
+    { label: "กำไรสุทธิ",                     kind: "end"   },
+  ],
+  "2568": [
+    { label: "รายได้รวม",        value: 108,  kind: "start" },
+    { label: "ต้นทุนขาย",        value: -44,  kind: "delta" },
+    { label: "เงินเดือนพนักงาน", value: -23,  kind: "delta" },
+    { label: "การตลาด",          value: -11,  kind: "delta" },
+    { label: "วิจัยและพัฒนา",    value: -7,   kind: "delta" },
+    { label: "ค่าใช้จ่ายบริหาร", value: -6.5, kind: "delta" },
+    { label: "รายได้อื่นๆ",     value: 4,    kind: "delta" },
+    { label: "กำไรสุทธิ",                     kind: "end"   },
+  ],
+  "2569": [
+    { label: "รายได้รวม",        value: 120,  kind: "start" },
+    { label: "ต้นทุนขาย",        value: -48,  kind: "delta" },
+    { label: "เงินเดือนพนักงาน", value: -25,  kind: "delta" },
+    { label: "การตลาด",          value: -12,  kind: "delta" },
+    { label: "วิจัยและพัฒนา",    value: -8,   kind: "delta" },
+    { label: "ค่าใช้จ่ายบริหาร", value: -7,   kind: "delta" },
+    { label: "รายได้อื่นๆ",     value: 5,    kind: "delta" },
+    { label: "กำไรสุทธิ",                     kind: "end"   },
+  ],
+};
+
+const YEARS = Object.keys(BUDGETS);
+let currentYear = YEARS[YEARS.length - 1];
+
+const fmt = (n) => n.toLocaleString("th-TH", { maximumFractionDigits: 1 });
+const fmtSigned = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n));
+
+// คำนวณตำแหน่งสะสมของแต่ละแท่ง
+function computeSteps(items) {
+  let cum = 0;
+  return items.map((it) => {
+    if (it.kind === "end") {
+      const s = { ...it, value: cum, from: 0, to: cum };
+      return s;
+    }
+    const from = it.kind === "start" ? 0 : cum;
+    cum += it.value;
+    return { ...it, from, to: cum };
+  });
+}
+
+// ---------- แผนภูมิ ----------
+const svg = document.getElementById("chart");
+const tooltip = document.getElementById("tooltip");
+const NS = "http://www.w3.org/2000/svg";
+
+function el(name, attrs, text) {
+  const node = document.createElementNS(NS, name);
+  for (const k in attrs) node.setAttribute(k, attrs[k]);
+  if (text != null) node.textContent = text;
+  return node;
+}
+
+function niceStep(max) {
+  const raw = max / 5;
+  const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const m of [1, 2, 2.5, 5, 10]) if (raw <= m * pow) return m * pow;
+  return 10 * pow;
+}
+
+function renderChart() {
+  const steps = computeSteps(BUDGETS[currentYear]);
+  const W = 960, H = 430, m = { top: 28, right: 16, bottom: 56, left: 56 };
+  const iw = W - m.left - m.right, ih = H - m.top - m.bottom;
+  const maxVal = Math.max(...steps.map((s) => Math.max(s.from, s.to)));
+  const step = niceStep(maxVal);
+  const yMax = Math.ceil(maxVal / step) * step;
+  const y = (v) => m.top + ih - (v / yMax) * ih;
+  const n = steps.length;
+  const band = iw / n, barW = Math.min(band * 0.62, 72);
+  const x = (i) => m.left + band * i + (band - barW) / 2;
+
+  svg.textContent = "";
+
+  // เส้นกริดและแกน y
+  for (let v = 0; v <= yMax; v += step) {
+    svg.appendChild(el("line", { x1: m.left, x2: W - m.right, y1: y(v), y2: y(v), class: "gridline" }));
+    svg.appendChild(el("text", { x: m.left - 8, y: y(v) + 4, "text-anchor": "end", class: "tick" }, fmt(v)));
+  }
+
+  // เส้นเชื่อมระหว่างแท่ง
+  for (let i = 0; i < n - 1; i++) {
+    const yy = y(steps[i].to);
+    svg.appendChild(el("line", { x1: x(i) + barW, x2: x(i + 1), y1: yy, y2: yy, class: "connector" }));
+  }
+
+  // แท่งข้อมูล + ป้ายกำกับ
+  steps.forEach((s, i) => {
+    const isTotal = s.kind !== "delta";
+    const color = isTotal ? "var(--total)" : s.value >= 0 ? "var(--inc)" : "var(--dec)";
+    const top = y(Math.max(s.from, s.to));
+    const h = Math.max(Math.abs(y(s.from) - y(s.to)), 2);
+    svg.appendChild(el("rect", { x: x(i), y: top, width: barW, height: h, rx: 3, fill: color, class: "bar" }));
+    svg.appendChild(el("text", {
+      x: x(i) + barW / 2, y: top - 7, "text-anchor": "middle", class: "barlabel",
+    }, isTotal ? fmt(s.value) : fmtSigned(s.value)));
+
+    // ชื่อหมวดใต้แกน (ตัดบรรทัดถ้ายาว)
+    const words = s.label.split(" ");
+    const cat = el("text", { x: x(i) + barW / 2, y: H - m.bottom + 18, "text-anchor": "middle", class: "cat" });
+    words.forEach((w, wi) => cat.appendChild(el("tspan", { x: x(i) + barW / 2, dy: wi === 0 ? 0 : 14 }, w)));
+    svg.appendChild(cat);
+
+    // พื้นที่รับ hover เต็มคอลัมน์
+    const hit = el("rect", { x: m.left + band * i, y: m.top, width: band, height: ih, class: "hit" });
+    hit.addEventListener("pointerenter", () => showTooltip(s, isTotal));
+    hit.addEventListener("pointermove", moveTooltip);
+    hit.addEventListener("pointerleave", hideTooltip);
+    svg.appendChild(hit);
+  });
+
+  // เส้นฐาน
+  svg.appendChild(el("line", { x1: m.left, x2: W - m.right, y1: y(0), y2: y(0), class: "axisline" }));
+
+  document.getElementById("chartTitle").textContent =
+    `แผนงบประมาณ ปี ${currentYear} — จากรายได้รวมสู่กำไรสุทธิ`;
+}
+
+function showTooltip(s, isTotal) {
+  tooltip.innerHTML =
+    `<div class="t-name">${s.label}</div>` +
+    `<div class="t-row"><span>${isTotal ? "ยอดรวม" : "จำนวน"}</span><b>${isTotal ? fmt(s.value) : fmtSigned(s.value)} ลบ.</b></div>` +
+    (isTotal ? "" : `<div class="t-row"><span>ยอดสะสม</span><b>${fmt(s.to)} ลบ.</b></div>`);
+  tooltip.style.display = "block";
+}
+function moveTooltip(e) {
+  const card = tooltip.parentElement.getBoundingClientRect();
+  let tx = e.clientX - card.left + 14, ty = e.clientY - card.top + 14;
+  const tw = tooltip.offsetWidth, cw = card.width;
+  if (tx + tw > cw - 8) tx = e.clientX - card.left - tw - 14;
+  tooltip.style.left = tx + "px";
+  tooltip.style.top = ty + "px";
+}
+function hideTooltip() { tooltip.style.display = "none"; }
+
+// ---------- สรุปตัวเลข ----------
+function renderTiles() {
+  const items = BUDGETS[currentYear];
+  const revenue = items.filter((d) => d.kind === "start" || (d.kind === "delta" && d.value > 0))
+                       .reduce((a, d) => a + d.value, 0);
+  const expense = items.filter((d) => d.kind === "delta" && d.value < 0)
+                       .reduce((a, d) => a - d.value, 0);
+  const net = revenue - expense;
+  const margin = (net / revenue) * 100;
+
+  const prevYear = YEARS[YEARS.indexOf(currentYear) - 1];
+  let deltaHtml = "";
+  if (prevYear) {
+    const p = computeSteps(BUDGETS[prevYear]).at(-1).value;
+    const g = ((net - p) / p) * 100;
+    deltaHtml = `<div class="delta ${g >= 0 ? "up" : "down"}">${g >= 0 ? "▲" : "▼"} ${fmt(Math.abs(g))}% จากปี ${prevYear}</div>`;
+  }
+
+  document.getElementById("tiles").innerHTML = `
+    <div class="tile"><div class="label">รายได้รวม</div><div class="value">${fmt(revenue)}<span class="unit">ลบ.</span></div></div>
+    <div class="tile"><div class="label">ค่าใช้จ่ายรวม</div><div class="value">${fmt(expense)}<span class="unit">ลบ.</span></div></div>
+    <div class="tile"><div class="label">กำไรสุทธิ</div><div class="value">${fmt(net)}<span class="unit">ลบ.</span></div>${deltaHtml}</div>
+    <div class="tile"><div class="label">อัตรากำไรสุทธิ</div><div class="value">${fmt(margin)}<span class="unit">%</span></div></div>`;
+}
+
+// ---------- มุมมองตาราง ----------
+function renderTable() {
+  const steps = computeSteps(BUDGETS[currentYear]);
+  const rows = steps.map((s) => {
+    const isTotal = s.kind !== "delta";
+    const cls = isTotal ? "" : s.value >= 0 ? "pos" : "neg";
+    return `<tr class="${isTotal ? "total-row" : ""}">
+      <td>${s.label}</td>
+      <td class="num ${cls}">${isTotal ? fmt(s.value) : fmtSigned(s.value)}</td>
+      <td class="num">${fmt(s.to)}</td>
+    </tr>`;
+  }).join("");
+  document.getElementById("tableView").innerHTML = `
+    <table>
+      <thead><tr><th>รายการ</th><th class="num">จำนวน (ลบ.)</th><th class="num">ยอดสะสม (ลบ.)</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ---------- ตัวควบคุม ----------
+function renderYearSeg() {
+  const seg = document.getElementById("yearSeg");
+  seg.innerHTML = "";
+  YEARS.forEach((yr) => {
+    const b = document.createElement("button");
+    b.textContent = yr;
+    b.setAttribute("aria-pressed", yr === currentYear);
+    b.addEventListener("click", () => { currentYear = yr; update(); });
+    seg.appendChild(b);
+  });
+}
+
+const btnChart = document.getElementById("btnChart");
+const btnTable = document.getElementById("btnTable");
+function setView(table) {
+  document.getElementById("chartView").style.display = table ? "none" : "";
+  document.getElementById("tableView").style.display = table ? "block" : "none";
+  btnChart.setAttribute("aria-pressed", !table);
+  btnTable.setAttribute("aria-pressed", table);
+}
+btnChart.addEventListener("click", () => setView(false));
+btnTable.addEventListener("click", () => setView(true));
+
+const themeBtn = document.getElementById("themeBtn");
+function applyThemeLabel() {
+  const dark = document.documentElement.dataset.theme === "dark" ||
+    (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  themeBtn.textContent = dark ? "☀️ โหมดสว่าง" : "🌙 โหมดมืด";
+}
+themeBtn.addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme === "dark" ||
+    (!root.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  root.dataset.theme = dark ? "light" : "dark";
+  applyThemeLabel();
+});
+
+function update() {
+  renderYearSeg();
+  renderTiles();
+  renderChart();
+  renderTable();
+}
+update();
+applyThemeLabel();
+</script>
+</body>
+</html>
